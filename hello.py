@@ -2,6 +2,7 @@ from langgraph.graph.state import CompiledStateGraph
 from langgraph.prebuilt import tools_condition
 
 from src.llm import llm
+from src.memory import memory
 from src.tools import tools, tool_node
 from src.chatbot import create_chatbot_func
 from src.graph import (
@@ -22,7 +23,7 @@ def setup_graph(chatbot_func) -> CompiledStateGraph:
     # Any time a tool is called, we return to the chatbot to decide the next step
     graph_builder.add_edge("tools", "chatbot")
     graph_builder.set_entry_point("chatbot")
-    return graph_builder.compile()
+    return graph_builder.compile(checkpointer=memory)
 
 
 def main(chatbot_func):

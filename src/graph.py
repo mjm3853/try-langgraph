@@ -17,7 +17,8 @@ class State(TypedDict):
 
 def stream_graph_updates(user_input: str, graph: CompiledStateGraph):
     """Stream updates from the graph based on user input."""
-    for event in graph.stream({"messages": [{"role": "user", "content": user_input}]}):
+    config = {"configurable": {"thread_id": "1"}}
+    for event in graph.stream({"messages": [{"role": "user", "content": user_input}]}, config):
         for value in event.values():
             print("Assistant:", value["messages"][-1].content)
 
