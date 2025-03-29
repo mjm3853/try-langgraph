@@ -30,3 +30,5 @@ def test_setup_graph(mock_llm, fresh_graph_builder):
     graph = fresh_graph_builder.compile()
     assert isinstance(graph, CompiledStateGraph)
     assert "chatbot" in graph.get_graph().nodes
+    edges = [(edge.source, edge.target) for edge in graph.get_graph().edges]
+    assert edges == [(START, "chatbot"), ("chatbot", END)]

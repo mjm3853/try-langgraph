@@ -7,7 +7,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 def mock_llm():
     """Fixture for a mocked ChatGoogleGenerativeAI instance."""
     mock = MagicMock(spec=ChatGoogleGenerativeAI)
-    mock.invoke.return_value = {"content": "Hello, world!"}
+    mock.invoke.return_value = {"content": "Hello, world!", "role": "assistant"}
     return mock
 
 @pytest.fixture
@@ -21,6 +21,7 @@ def test_chatbot(mock_llm, sample_state):
     mock_llm.invoke.assert_called_once_with(sample_state["messages"])
     assert "messages" in result
     assert result["messages"][0]["content"] == "Hello, world!"
+    assert result["messages"][0]["role"] == "assistant"
 
 def test_create_chatbot_func(mock_llm, sample_state):
     """Test the create_chatbot_func function."""
