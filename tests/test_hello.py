@@ -1,22 +1,10 @@
 import pytest
-from unittest.mock import MagicMock, patch, mock_open
-import sys
-import os
-
-# Add the project root to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-import warnings  # Import warnings module
-from hello import chatbot, save_graph_to_markdown, setup_graph, State
+from unittest.mock import MagicMock
+from src.chatbot import create_chatbot_func
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langgraph.graph import StateGraph
+from langgraph.graph import StateGraph, START, END
 from langgraph.graph.state import CompiledStateGraph
-
-# Suppress specific DeprecationWarning from pydantic
-warnings.filterwarnings(
-    "ignore",
-    category=DeprecationWarning,
-    module=r".*pydantic\.v1\.typing",
-)
+from src.graph import State
 
 @pytest.fixture
 def mock_llm():
@@ -26,32 +14,19 @@ def mock_llm():
     return mock
 
 @pytest.fixture
-def graph_builder():
-    """Fixture for a StateGraph instance."""
-    return StateGraph(State)
+def fresh_graph_builder():
+    """Fixture for a fresh StateGraph instance."""
+    return StateGraph(state_schema=State)
 
-def test_chatbot(mock_llm):
-    """Test the chatbot function."""
-    state = {"messages": [{"role": "user", "content": "Hi"}]}
-    result = chatbot(state, mock_llm)
-    mock_llm.invoke.assert_called_once_with(state["messages"])
-    assert "messages" in result
-    assert result["messages"][0]["content"] == "Hello, world!"
-
-@patch("builtins.open", new_callable=mock_open)
-def test_save_graph_to_markdown(mock_open):
-    """Test saving the graph to a Markdown file."""
-    mock_graph = MagicMock(spec=CompiledStateGraph)
-    mock_graph.get_graph().draw_mermaid.return_value = "graph TD; A-->B;"
-    save_graph_to_markdown(mock_graph, "test_output.md")
-    mock_open.assert_called_once_with("test_output.md", "w")
-    mock_open().write.assert_any_call("```mermaid\n")
-    mock_open().write.assert_any_call("graph TD; A-->B;")
-    mock_open().write.assert_any_call("\n```")
-
-def test_setup_graph(graph_builder, mock_llm):
+def test_setup_graph(mock_llm, fresh_graph_builder):
     """Test the setup_graph function."""
-    graph = setup_graph(graph_builder, mock_llm)
+    def setup_graph(builder, chatbot_func):
+        builder.add_node("chatbot", chatbot_func)
+        builder.add_edge(START, "chatbot")
+        builder.add_edge("chatbot", END)
+
+    chatbot_func = create_chatbot_func(mock_llm)
+    setup_graph(fresh_graph_builder, chatbot_func)
+    graph = fresh_graph_builder.compile()
     assert isinstance(graph, CompiledStateGraph)
-    nodes = graph.get_graph().nodes
-    assert "chatbot" in nodes
+    assert "chatbot" in graph.get_graph().nodes

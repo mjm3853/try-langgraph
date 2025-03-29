@@ -1,57 +1,30 @@
 from langchain_google_genai import ChatGoogleGenerativeAI
-from dotenv import load_dotenv
-from typing import Annotated
-
-from typing_extensions import TypedDict
-
-from langgraph.graph import StateGraph, START, END
-from langgraph.graph.message import add_messages
+from langgraph.graph import START, END
 from langgraph.graph.state import CompiledStateGraph
+from dotenv import load_dotenv
+
+from src.chatbot import create_chatbot_func
+from src.graph import (
+    stream_graph_updates,
+    save_graph_to_markdown,
+    GRAPH_OUTPUT_FILE,
+    graph_builder,
+)
 
 load_dotenv()
 
 
-class State(TypedDict):
-    # Messages have the type "list". The `add_messages` function
-    # in the annotation defines how this state key should be updated
-    # (in this case, it appends messages to the list, rather than overwriting them)
-    messages: Annotated[list, add_messages]
-
-
-def chatbot(state: State, llm: ChatGoogleGenerativeAI):
-    """Chatbot node function that uses the provided LLM."""
-    return {"messages": [llm.invoke(state["messages"])]}
-
-def stream_graph_updates(user_input: str, graph: CompiledStateGraph):
-    """Stream updates from the graph based on user input."""
-    for event in graph.stream({"messages": [{"role": "user", "content": user_input}]}):
-        for value in event.values():
-            print("Assistant:", value["messages"][-1].content)
-
-GRAPH_OUTPUT_FILE = "graph_output.md"
-
-def save_graph_to_markdown(graph: CompiledStateGraph, file_name: str):
-    """Save the Mermaid syntax of the graph to a Markdown file."""
-    try:
-        mermaid_syntax = graph.get_graph().draw_mermaid()
-        with open(file_name, "w") as file:
-            file.write("```mermaid\n")
-            file.write(mermaid_syntax)
-            file.write("\n```")
-        print(f"Graph saved to '{file_name}'. You can open it in a Markdown viewer that supports Mermaid.")
-    except Exception:
-        print("Failed to save the graph. Ensure all dependencies are installed.")
-
-def setup_graph(graph_builder: StateGraph, llm: ChatGoogleGenerativeAI) -> CompiledStateGraph:
+def setup_graph(chatbot_func) -> CompiledStateGraph:
     """Set up the state graph with nodes and edges."""
-    graph_builder.add_node("chatbot", lambda state: chatbot(state, llm))
+    graph_builder.add_node("chatbot", chatbot_func)
     graph_builder.add_edge(START, "chatbot")
     graph_builder.add_edge("chatbot", END)
     return graph_builder.compile()
 
-def main(graph_builder: StateGraph, llm: ChatGoogleGenerativeAI):
+
+def main(chatbot_func):
     """Main function to run the application."""
-    graph = setup_graph(graph_builder, llm)
+    graph = setup_graph(chatbot_func)
     save_graph_to_markdown(graph, GRAPH_OUTPUT_FILE)
 
     while True:
@@ -68,9 +41,8 @@ def main(graph_builder: StateGraph, llm: ChatGoogleGenerativeAI):
             stream_graph_updates(user_input, graph)
             break
 
+
 if __name__ == "__main__":
-    # Inject dependencies
-    graph_builder = StateGraph(State)
     llm = ChatGoogleGenerativeAI(
         model="gemini-1.5-pro",
         temperature=0,
@@ -79,4 +51,5 @@ if __name__ == "__main__":
         max_retries=2,
         # other params...
     )
-    main(graph_builder, llm)
+    chatbot_func = create_chatbot_func(llm)
+    main(chatbot_func)
