@@ -3,7 +3,7 @@ from langgraph.prebuilt import tools_condition
 
 from src.llm import llm
 from src.memory import memory
-from src.tools import tools, tool_node
+from src.tools.toolbox import tools, tool_node
 from src.chatbot import create_chatbot_func
 from src.graph import (
     stream_graph_updates,
@@ -38,11 +38,13 @@ def main(chatbot_func):
                 print("Goodbye!")
                 break
             stream_graph_updates(user_input, graph)
-        except:  # noqa: E722
+        except Exception as e:  # noqa: E722
+            # Print detailed exception information
+            print(f"An error occurred: {e}")
+            print(f"Exception type: {type(e).__name__}")
             # fallback if input() is not available
             user_input = "What do you know about LangGraph?"
-            print("User: " + user_input)
-            stream_graph_updates(user_input, graph)
+            print("Something went wrong!")
             break
 
 

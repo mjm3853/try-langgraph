@@ -5,6 +5,7 @@ from typing_extensions import TypedDict
 from langgraph.graph import StateGraph
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.graph.message import add_messages
+from langgraph.types import Command
 
 
 
@@ -18,9 +19,23 @@ class State(TypedDict):
 def stream_graph_updates(user_input: str, graph: CompiledStateGraph):
     """Stream updates from the graph based on user input."""
     config = {"configurable": {"thread_id": "1"}}
-    for event in graph.stream({"messages": [{"role": "user", "content": user_input}]}, config):
-        for value in event.values():
-            print("Assistant:", value["messages"][-1].content)
+    events = graph.stream({"messages": [{"role": "user", "content": user_input}]}, config, stream_mode="values")
+    for event in events:
+        if "messages" in event:
+            event["messages"][-1].pretty_print()
+
+    state = graph.get_state(config)
+    if state.tasks:
+        if (state.tasks[0].interrupts):
+            print(state.tasks[0].interrupts)
+            human_response = input("Tell the AI something... ")
+            human_command = Command(resume={"data": human_response})
+
+            events = graph.stream(human_command, config, stream_mode="values")
+            for event in events:
+                if "messages" in event:
+                    event["messages"][-1].pretty_print() 
+
 
 GRAPH_OUTPUT_FILE = "graph_output.md"
 
