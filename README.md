@@ -13,4 +13,10 @@ LangGraph is a tool for building and visualizing language models and workflows. 
 
 ## Run
 
-`uv run hello.py`
+`uv run agent.py`
+
+## LangGraph UI
+
+`uv run langgraph dev`
+
+Needs work

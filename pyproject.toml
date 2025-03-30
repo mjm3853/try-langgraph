@@ -9,6 +9,7 @@ dependencies = [
     "langchain-google-genai>=2.1.2",
     "langchain-tavily>=0.1.5",
     "langgraph>=0.3.21",
+    "langgraph-cli[inmem]>=0.1.81",
     "python-dotenv>=1.1.0",
     "tavily-python>=0.5.3",
 ]
