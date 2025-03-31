@@ -30,5 +30,11 @@ async def search(
     result = await wrapped.ainvoke({"query": query})
     return cast(list[dict[str, Any]], result)
 
+def multiply(a: int, b: int) -> int:
+    """Multiply two numbers."""
+    return a * b
 
-TOOLS: List[Callable[..., Any]] = [search]
+
+
+
+TOOLS: List[Callable[..., Any]] = [search, multiply]
